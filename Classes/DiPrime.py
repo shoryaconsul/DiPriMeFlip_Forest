@@ -25,6 +25,7 @@ def query(x, s, e):
 # Returns: Value of attribute to split at
 def query_cont_med(Xj, Xrange, eps=None):
     M = np.shape(Xj)[0]
+    Xj_sort = np.sort(Xj)
     # print('M: ',M)
 
     if M <= 1:
@@ -33,13 +34,15 @@ def query_cont_med(Xj, Xrange, eps=None):
     elif eps is None:  # Return true median
         return np.median(Xj)
     else:  # Private median
-        score = np.abs(np.arange(-M, M+1, 2))  # Scoring function is N_L-N_R
+        bin_size = np.concatenate(([Xj_sort[0]-Xrange[0]],
+                                    np.diff(Xj_sort),
+                                    [Xrange[1]-Xj_sort[-1]]))
+        score_lr = np.abs(np.arange(-M, M+1, 2))  # Scoring function is N_L-N_R
         # print('SCORE: ', score)
-        prob = np.exp(-0.5*eps*score)  # Probability disribution for median selection
-        prob = prob/sum(prob)  # Normalizing distribution
+        prob = np.exp(np.log(bin_size)-0.5*eps*score_lr) + 1e-12  # Probability disribution for median selection
+        prob = prob/sum(prob)   # Normalizing distribution
         ind_med = rn.choice(M+1, p=prob)
 
-        Xj_sort = np.sort(Xj)
         if ind_med == 0:
             x_pick = random.uniform(Xrange[0], Xj_sort[0])
         elif ind_med == M:
@@ -166,8 +169,8 @@ def split_count(X, y, A, By, cat_idx, K, eps=None):
         else:  # Empty node, so all splits are equivalent
             score_split = np.ones(K1)
         # print('# SPLIT: ',len(y_upp),len(y_low))
-        # if np.any(np.isnan(score_split/np.sum(score_split))):
-        #    print('SSE ',sse_idx,' SCORE ',score_split)
+        if np.any(np.isnan(score_split/np.sum(score_split))):
+            score_split = np.ones(K1)
         idx_split = rn.choice(idx_cand, p=score_split/np.sum(score_split))
     return idx_split, val_cand[idx_split]
 

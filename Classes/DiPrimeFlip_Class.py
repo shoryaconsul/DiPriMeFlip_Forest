@@ -35,6 +35,7 @@ def pf_mech(score, sens, eps):
     #         ind_sel = rn.permutation(ind_flip)[0]
         if len(ind_sel) > 0:  # Valid index found
             break
+
     return ind_perm[ind_sel[0]]
 
 
@@ -46,6 +47,7 @@ def pf_mech(score, sens, eps):
 # Returns: Value of attribute to split at
 def query_cont_med(Xj, Xrange, eps=None):
     M = np.shape(Xj)[0]
+    Xj_sort = np.sort(Xj)
     # print('M: ',M)
 
     if M <= 1:
@@ -54,11 +56,13 @@ def query_cont_med(Xj, Xrange, eps=None):
     elif eps is None:  # Return true median
         return np.median(Xj)
     else:  # Private median
-        score = -1*np.abs(np.arange(-M, M+1, 2))  # Scoring function is -|N_L-N_R|
-        # print('SCORE: ',score)
+        bin_size = np.concatenate(([Xj_sort[0]-Xrange[0]],
+                                    np.diff(Xj_sort),
+                                    [Xrange[1]-Xj_sort[-1]]))
+        score_lr = np.abs(np.arange(-M, M+1, 2))  # Scoring function is N_L-N_R
+        score = 2*np.log(bin_size+1e-12) - score_lr
         ind_med = pf_mech(score, 1, eps)
 
-        Xj_sort = np.sort(Xj)
         if ind_med == 0:
             x_pick = random.uniform(Xrange[0], Xj_sort[0])
         elif ind_med == M:
